@@ -1,13 +1,18 @@
 #ifndef WARPNAV_H
 #define WARPNAV_H
 
-#define INCL_WIN
-#define INCL_WINMENUS
-#define INCL_WINPOINTERS
-#define INCL_WINWORKPLACE
-#define INCL_DOS
-#define INCL_GPI
-#define INCL_DOSERRORS
+/*
+ * INCL_* selectors must be defined BEFORE including <os2.h>.
+ * Each one gates a block of declarations inside the OS/2 headers.
+ * Omitting one causes "undefined" errors for any API in that subsystem.
+ */
+#define INCL_WIN          /* WinXxx window-manager functions      */
+#define INCL_WINMENUS     /* menu API (MM_xxx, WM_COMMAND …)      */
+#define INCL_WINPOINTERS  /* WinLoadFileIcon, WinQuerySysPointer  */
+#define INCL_WINWORKPLACE /* WinQueryObject, WinOpenObject        */
+#define INCL_DOS          /* DosXxx file/process API              */
+#define INCL_GPI          /* GpiLine, GpiPolygons … (drawing)     */
+#define INCL_DOSERRORS    /* NO_ERROR, ERROR_xxx constants        */
 #include <os2.h>
 #include <stddef.h>
 #include <string.h>
@@ -21,7 +26,13 @@
 #define OPEN_SETTINGS 2UL
 #endif
 
-/* Container attribute missing from some OpenWatcom builds */
+/*
+ * CA_AUTOPOSITION – tells the container to auto-arrange icons in a grid.
+ * The correct value is 0x0800.  0x0020 looks plausible but is actually
+ * CA_CONTAINERTITLE; using the wrong value causes all icons to pile up
+ * in the bottom-left corner instead of forming a grid.
+ * Some OpenWatcom header versions omit this constant, so we guard it.
+ */
 #ifndef CA_AUTOPOSITION
 #define CA_AUTOPOSITION 0x0800
 #endif
@@ -109,7 +120,18 @@
 /* ── Navigation history ────────────────────────────────────────────────────── */
 #define MAX_HISTORY       64
 
-/* ── File record (right panel container) ───────────────────────────────────── */
+/*
+ * File record for the right-panel container (CV_ICON / CV_NAME / CV_DETAIL).
+ *
+ * RECORDCORE MUST be the very first member.  The container casts PFILERECORD*
+ * directly to PRECORDCORE* when it calls back into our code; any offset would
+ * corrupt the pointer.
+ *
+ * The PSZ pointer fields (pszName …) are required for CV_DETAIL columns.
+ * FIELDINFO.offStruct stores the byte offset of the PSZ within the record.
+ * We point each PSZ at the corresponding CHAR array inside the same struct so
+ * that no separate allocation is needed and the record is self-contained.
+ */
 typedef struct _FILERECORD {
     RECORDCORE  rc;           /* MUST be first — full record for CV_ICON */
     PSZ         pszName;      /* → szName  (detail column) */

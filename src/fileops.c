@@ -25,6 +25,16 @@ VOID FileOpen(PFILERECORD prec)
             strncat(szFull, "\\", CCHMAXPATH - len - 1);
         strncat(szFull, prec->szName, CCHMAXPATH - (INT)strlen(szFull) - 1);
 
+        /*
+         * WPS open pattern: WinQueryObject looks up the Workplace Shell object
+         * for a file-system path and returns an HOBJECT handle.
+         * WinOpenObject then opens it using the view specified:
+         *   OPEN_DEFAULT  – whatever the user set as the default open action
+         *   OPEN_CONTENTS – folder contents (equivalent to double-click)
+         *   OPEN_SETTINGS – the Properties notebook
+         * This is how a file manager delegates "open with associated app" to
+         * the WPS without hard-coding any application knowledge.
+         */
         hobj = WinQueryObject((PCSZ)szFull);
         if (hobj)
             WinOpenObject(hobj, OPEN_DEFAULT, FALSE);

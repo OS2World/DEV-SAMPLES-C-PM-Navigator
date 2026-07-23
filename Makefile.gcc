@@ -1,0 +1,51 @@
+# Makefile.gcc — WarpNav built with GCC 9 for OS/2
+#
+# Usage:  make -f Makefile.gcc           (builds bin-gcc/warpnav.exe)
+#         make -f Makefile.gcc clean
+#
+# Requires:
+#   GCC 9 for OS/2        – available via ANPM on ArcaOS
+#   watcom-wlink-hll      – provides wl.exe  (ANPM)
+#   wrc                   – from OpenWatcom; WATCOM env var must be set
+#   GNU make              – installed alongside GCC on ArcaOS
+#
+# EMXOMFLD_TYPE=WLINK tells GCC's linker front-end to call wlink (wl.exe)
+# instead of ilink.  GCC then links kLIBC (startup + C runtime) automatically
+# and reads src/warpnav.def to mark the LX EXE as a PM application.
+
+export EMXOMFLD_TYPE   = WLINK
+export EMXOMFLD_LINKER = wl.exe
+
+CC     = gcc
+CFLAGS = -Zomf -Wall -Wno-pointer-sign -std=c99
+WRC    = wrc
+
+BINDIR = bin-gcc
+SRCDIR = src
+
+OBJS = \
+    $(BINDIR)/main.obj     \
+    $(BINDIR)/mainwnd.obj  \
+    $(BINDIR)/treeview.obj \
+    $(BINDIR)/fileview.obj \
+    $(BINDIR)/fileops.obj
+
+.PHONY: all clean
+
+all: $(BINDIR)/warpnav.exe
+
+$(BINDIR):
+	mkdir $@
+
+$(BINDIR)/%.obj: $(SRCDIR)/%.c | $(BINDIR)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BINDIR)/warpnav.res: $(SRCDIR)/warpnav.rc | $(BINDIR)
+	$(WRC) -r -I$(WATCOM)/h/os2 -I$(WATCOM)/h -fo=$@ $<
+
+$(BINDIR)/warpnav.exe: $(OBJS) $(BINDIR)/warpnav.res
+	$(CC) -Zomf -o $@ $(filter %.obj,$^) $(SRCDIR)/warpnav.def
+	$(WRC) $(filter %.res,$^) $@
+
+clean:
+	-rm -f $(BINDIR)/*.obj $(BINDIR)/*.res $(BINDIR)/*.exe

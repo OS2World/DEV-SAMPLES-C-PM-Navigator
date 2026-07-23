@@ -1,0 +1,58 @@
+# WarpNav – OpenWatcom wmake build file
+# Usage:  wmake
+# Output: bin-ow\warpnav.exe
+
+CC     = wcc386
+LINK   = wlink
+RC     = wrc
+RM     = del /f /q
+
+CFLAGS = -bt=os2v2 -mf -3 -sg -zp4 -we -w4 -ei &
+         -I$(%WATCOM)\h\os2 -I$(%WATCOM)\h
+
+SRCS = src\main.c      &
+       src\mainwnd.c   &
+       src\treeview.c  &
+       src\fileview.c  &
+       src\fileops.c
+
+OBJS = bin-ow\main.obj      &
+       bin-ow\mainwnd.obj   &
+       bin-ow\treeview.obj  &
+       bin-ow\fileview.obj  &
+       bin-ow\fileops.obj
+
+EXE  = bin-ow\warpnav.exe
+RES  = bin-ow\warpnav.res
+
+all : dirs $(EXE) .SYMBOLIC
+
+dirs : .SYMBOLIC
+    @if not exist bin-ow md bin-ow
+
+$(EXE) : $(OBJS) $(RES)
+    $(LINK) system os2v2_pm name $(EXE) file { $(OBJS) }
+    $(RC) $(RES) $(EXE)
+
+$(RES) : src\warpnav.rc src\warpnav.h
+    $(RC) -r -I$(%WATCOM)\h\os2 -I$(%WATCOM)\h src\warpnav.rc $@
+
+bin-ow\main.obj : src\main.c src\warpnav.h
+    $(CC) $(CFLAGS) -fo=$@ src\main.c
+
+bin-ow\mainwnd.obj : src\mainwnd.c src\warpnav.h
+    $(CC) $(CFLAGS) -fo=$@ src\mainwnd.c
+
+bin-ow\treeview.obj : src\treeview.c src\warpnav.h
+    $(CC) $(CFLAGS) -fo=$@ src\treeview.c
+
+bin-ow\fileview.obj : src\fileview.c src\warpnav.h
+    $(CC) $(CFLAGS) -fo=$@ src\fileview.c
+
+bin-ow\fileops.obj : src\fileops.c src\warpnav.h
+    $(CC) $(CFLAGS) -fo=$@ src\fileops.c
+
+clean : .SYMBOLIC
+    -$(RM) $(OBJS)
+    -$(RM) $(RES)
+    -$(RM) $(EXE)

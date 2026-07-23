@@ -28,7 +28,7 @@ static LONG  s_xSep2 = 0;   /* x of toolbar group separator after path bar */
 /* Status bar three-column text */
 static CHAR s_szStat1[300] = "  Ready";
 static CHAR s_szStat2[64]  = "";
-static CHAR s_szStat3[64]  = "";
+static CHAR s_szStat3[CCHMAXPATH + 4] = "";
 
 static VOID InvalidateStatus(VOID)
 {
@@ -451,6 +451,11 @@ VOID SetViewMode(INT iMode)
     WinSendMsg(g_hwndFiles, CM_SETCNRINFO,
                MPFROMP(&cnri), MPFROMLONG(CMA_FLWINDOWATTR));
 
+    /*
+     * CM_ARRANGE re-tiles existing icon records into a grid.  It must be sent
+     * AFTER CM_SETCNRINFO when records are already in the container; otherwise
+     * icons stay wherever they were and do not form a grid.
+     */
     if (iMode == 0)
         WinSendMsg(g_hwndFiles, CM_ARRANGE, NULL, NULL);
 
@@ -557,7 +562,12 @@ MRESULT EXPENTRY ClientWndProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             WS_VISIBLE | BS_PUSHBUTTON,
             0, 0, 0, 0, hwnd, HWND_TOP, ID_BTN_DETAILS, NULL, NULL);
 
-        /* subclass all toolbar buttons to draw custom icons via WM_PAINT */
+        /*
+         * WinSubclassWindow replaces a window's procedure with our own and
+         * returns the original PFNWP so we can forward unhandled messages.
+         * We call it on the first button and reuse that one saved PFNWP for
+         * all buttons — they all share the same original WC_BUTTON procedure.
+         */
         s_pfnOrigBtn = WinSubclassWindow(s_hwndBtnBack,    ToolBtnSubProc);
         WinSubclassWindow(s_hwndBtnFwd,     ToolBtnSubProc);
         WinSubclassWindow(s_hwndBtnUp,      ToolBtnSubProc);
@@ -579,6 +589,12 @@ MRESULT EXPENTRY ClientWndProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
     case WM_PAINT:
     {
+        /*
+         * PM coordinate system: Y increases UPWARD.  (0,0) is the bottom-left
+         * corner of the client area — the opposite of Windows.  STATUSBAR_H
+         * pixels above the bottom is where the status bar lives; the toolbar
+         * sits at the top (s_cy - TOOLBAR_H).
+         */
         HPS    hps = WinBeginPaint(hwnd, NULLHANDLE, NULL);
         RECTL  rcl;
         POINTL pt;
@@ -644,7 +660,19 @@ MRESULT EXPENTRY ClientWndProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
         pt.x = 0; pt.y = STATUSBAR_H - 1; GpiMove(hps, &pt);
         pt.x = s_cx;                       GpiLine(hps, &pt);
 
-        /* three text columns painted with WinDrawText */
+        /*
+         * Status bar: three columns drawn with WinDrawText.
+         *
+         * DT_VCENTER vertically centres text in the rectangle.
+         * OS/2 PM has no DT_SINGLELINE (that is a Windows-only flag);
+         * DT_VCENTER works on its own to centre a single line of text.
+         *
+         * DT_ERASERECT fills the rectangle with the background colour
+         * before drawing the text, so we do not need a separate WinFillRect.
+         *
+         * Passing cchText=-1 tells WinDrawText to measure the string with
+         * strlen internally.
+         */
         if (s_cx > 0) {
             RECTL rclS;
             LONG  x1 = (s_cx * 55L) / 100L;
@@ -769,6 +797,12 @@ MRESULT EXPENTRY ClientWndProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                 PFILERECORD prec = (PFILERECORD)PVOIDFROMMP(mp2);
                 ShowContextMenu(prec, hwnd);
             } else if (usNotify == CN_EMPHASIS) {
+                /*
+                 * CN_EMPHASIS fires whenever a record gains or loses cursor or
+                 * selection emphasis.  fEmphasisMask tells which attribute
+                 * changed; we only care when the cursor or selection moves so
+                 * we can refresh the status bar with the newly highlighted item.
+                 */
                 PNOTIFYRECORDEMPHASIS pnre = (PNOTIFYRECORDEMPHASIS)PVOIDFROMMP(mp2);
                 if (pnre && (pnre->fEmphasisMask & (CRA_CURSORED | CRA_SELECTED)))
                     UpdateStatus();
@@ -846,6 +880,11 @@ MRESULT EXPENTRY ClientWndProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
     }
 
     case WM_ERASEBACKGROUND:
+        /*
+         * Returning TRUE tells PM "I will erase my own background in WM_PAINT".
+         * Without this, PM draws the default window background before WM_PAINT,
+         * which causes a visible flash (flicker) on resize.
+         */
         return (MRESULT)TRUE;
     }
 

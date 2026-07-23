@@ -86,6 +86,12 @@ VOID PopulateFiles(PSZ pszPath)
     if (!hptrFolder) hptrFolder = WinQuerySysPointer(HWND_DESKTOP, SPTR_ICONINFORMATION, FALSE);
     if (!hptrFile)   hptrFile   = WinQuerySysPointer(HWND_DESKTOP, SPTR_APPICON, FALSE);
 
+    /*
+     * HDIR_CREATE is a constant (not a real handle) that tells DosFindFirst
+     * to allocate a new directory-search handle internally.  After the call,
+     * hdir holds the real handle for subsequent DosFindNext calls.
+     * Always close it with DosFindClose when done, even after an error.
+     */
     hdir     = HDIR_CREATE;
     ulCount  = 1;
     pFirst   = NULL;
@@ -111,6 +117,12 @@ VOID PopulateFiles(PSZ pszPath)
 
         bDir = (ffb.attrFile & FILE_DIRECTORY) != 0;
 
+        /*
+         * CM_ALLOCRECORD allocates a container record.  The first argument is
+         * the number of EXTRA bytes beyond the base RECORDCORE that the
+         * container should allocate.  We subtract sizeof(RECORDCORE) because
+         * FILERECORD already embeds RECORDCORE as its first member.
+         */
         prec = (PFILERECORD)WinSendMsg(g_hwndFiles,
             CM_ALLOCRECORD,
             MPFROMLONG(sizeof(FILERECORD) - sizeof(RECORDCORE)),
@@ -132,6 +144,7 @@ VOID PopulateFiles(PSZ pszPath)
         }
         prec->pszSize = prec->szSize;
 
+        /* OS/2 stores the year as an offset from 1980, so add 1980 to display it. */
         sprintf(prec->szDate, "%04d-%02d-%02d %02d:%02d",
                 (INT)ffb.fdateLastWrite.year + 1980,
                 (INT)ffb.fdateLastWrite.month,
@@ -156,7 +169,12 @@ VOID PopulateFiles(PSZ pszPath)
         prec->pszType = prec->szType;
         prec->bDir    = bDir;
 
-        /* build full path and load WPS icon */
+        /*
+         * WinLoadFileIcon asks the Workplace Shell for the icon registered to
+         * this specific file path (by extension or EA type).  If the WPS has
+         * no icon registered, it returns NULLHANDLE and we fall back to the
+         * generic folder/file system pointer.
+         */
         strncpy(szFull, pszPath, CCHMAXPATH - 1);
         strncat(szFull, prec->szName, CCHMAXPATH - (INT)strlen(szFull) - 1);
 
@@ -165,10 +183,17 @@ VOID PopulateFiles(PSZ pszPath)
 
         prec->rc.cb           = sizeof(RECORDCORE);
         prec->rc.flRecordAttr = bDir ? CRA_RECORDREADONLY : 0;
-        prec->rc.pszIcon      = prec->szName;   /* label in CV_ICON view */
-        prec->rc.pszName      = prec->szName;   /* label in CV_NAME (list) view */
-        prec->rc.hptrIcon     = hptr;            /* full icon for CV_ICON */
-        prec->rc.hptrMiniIcon = hptr;            /* mini icon for CV_NAME/CV_DETAIL */
+        /*
+         * pszIcon  – the text label shown in CV_ICON (icon) view.
+         * pszName  – the text label shown in CV_NAME (list) view.
+         * Both must be set; they can point to the same string.
+         * hptrIcon     is the large icon used in CV_ICON view.
+         * hptrMiniIcon is the small icon used in CV_NAME and CV_DETAIL views.
+         */
+        prec->rc.pszIcon      = prec->szName;
+        prec->rc.pszName      = prec->szName;
+        prec->rc.hptrIcon     = hptr;
+        prec->rc.hptrMiniIcon = hptr;
 
         prec->rc.preccNextRecord = NULL;
         if (!pFirst) {

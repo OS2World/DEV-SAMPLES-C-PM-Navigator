@@ -3,6 +3,19 @@
 /* sentinel label for placeholder "loading" children */
 static CHAR s_szEllipsis[] = "...";
 
+/*
+ * Lazy-load trick for the tree view:
+ *
+ * The PM container shows an expand (+) button next to a node only if the
+ * node already has at least one child record.  To avoid enumerating every
+ * subdirectory at startup, we insert a single placeholder ("...") child
+ * under each drive/folder node.  This makes the + appear immediately.
+ *
+ * When the user clicks + (CN_EXPANDTREE), PopulateTreeChildren removes the
+ * placeholder and inserts the real subdirectory children on demand.
+ * The placeholder is identified by szPath[0] == '\0'.
+ */
+
 /* Insert a single dummy "..." child under prec so the + button appears. */
 static VOID InsertDummy(PTREERECORD prec)
 {

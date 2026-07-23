@@ -17,13 +17,21 @@ int main(void)
     QMSG  qmsg;
     ULONG flCreate;
 
+    /*
+     * PM startup sequence (must follow this order):
+     *   1. WinInitialize  – connect to PM; returns the anchor-block handle (HAB)
+     *   2. WinCreateMsgQueue – create the thread's message queue
+     *   3. WinRegisterClass  – register any custom window classes
+     *   4. WinCreateStdWindow / WinCreateWindow – create the window hierarchy
+     *   5. Message loop (WinGetMsg / WinDispatchMsg)
+     *   6. Cleanup in reverse: DestroyWindow → DestroyMsgQueue → WinTerminate
+     */
     g_hab = WinInitialize(0);
     if (!g_hab) return 1;
 
     hmq = WinCreateMsgQueue(g_hab, 0);
     if (!hmq) { WinTerminate(g_hab); return 1; }
 
-    /* Register our client window class */
     WinRegisterClass(g_hab, WC_WARPNAVCLIENT, ClientWndProc,
                      CS_SIZEREDRAW | CS_CLIPCHILDREN, 0);
 
@@ -31,6 +39,13 @@ int main(void)
                FCF_SIZEBORDER  | FCF_MENU         | FCF_TASKLIST  |
                FCF_SHELLPOSITION | FCF_ACCELTABLE;
 
+    /*
+     * WinCreateStdWindow creates a frame + client window pair.
+     * The RETURN VALUE is the frame window handle.
+     * The last argument receives the CLIENT window handle (our WndProc window).
+     * FCF_MENU + resource ID loads the menu from the .rc file.
+     * FCF_ACCELTABLE loads the matching accelerator table (same resource ID).
+     */
     g_hwndFrame = WinCreateStdWindow(
         HWND_DESKTOP, WS_VISIBLE, &flCreate,
         WC_WARPNAVCLIENT, "Warp Navigator 1.0",
@@ -42,7 +57,7 @@ int main(void)
         return 1;
     }
 
-    /* Start at the current drive's root */
+    /* DosQueryCurrentDisk returns the 1-based drive number (1=A, 2=B, 3=C …) */
     {
         ULONG ulDisk, ulMap;
         DosQueryCurrentDisk(&ulDisk, &ulMap);
