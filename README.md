@@ -2,7 +2,7 @@
 This is a file browser, file navigator sample. 
 
 
-![Navigator ScreenShot](/wiki/ScreenShot.png)
+![Navigator ScreenShot](/Wiki/ScreenShot.png)
 
 ## LICENSE
 * BSD 3 Clauses
