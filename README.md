@@ -12,8 +12,8 @@ This is a file browser, file navigator sample.
 * Option 1: 
   * yum install git gcc make libc-devel binutils watcom-wrc watcom-wlink-hll watcom-wipfc
 * Option 2:
- * OpenWatcom
- * wlink
+  * OpenWatcom
+  * wlink
  
 ## AUTHORS
 * Martin Iturbide
