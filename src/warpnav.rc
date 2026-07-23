@@ -1,0 +1,76 @@
+#include "warpnav.h"
+
+/* ── Main menu (WPS-style) ─────────────────────────────────────────────────── */
+MENU IDR_MAINMENU
+{
+    SUBMENU "F~older",   IDM_FOLDER
+    {
+        MENUITEM "~Back\tAlt+Left",     IDM_FOLDER_BACK
+        MENUITEM "~Forward\tAlt+Right", IDM_FOLDER_FWD
+        MENUITEM "~Up\tAlt+Up",         IDM_FOLDER_UP
+        MENUITEM SEPARATOR
+        MENUITEM "E~xit\tAlt+F4",       IDM_FOLDER_EXIT
+    }
+
+    SUBMENU "~View",     IDM_VIEW
+    {
+        MENUITEM "~Icons",              IDM_VIEW_ICONS
+        MENUITEM "~List",               IDM_VIEW_LIST
+        MENUITEM "~Details",            IDM_VIEW_DETAILS
+        MENUITEM SEPARATOR
+        MENUITEM "~Refresh\tF5",        IDM_VIEW_REFRESH
+        MENUITEM SEPARATOR
+        MENUITEM "~Embed window...",    IDM_VIEW_EMBED
+        MENUITEM "~Release embedded",   IDM_VIEW_RELEASE
+    }
+
+    SUBMENU "~Selected", IDM_SELECTED
+    {
+        MENUITEM "~Open\tEnter",        IDM_SEL_OPEN
+        MENUITEM SEPARATOR
+        MENUITEM "~Delete\tDel",        IDM_SEL_DELETE
+        MENUITEM "~Rename\tF2",         IDM_SEL_RENAME
+    }
+
+    SUBMENU "~Help",     IDM_HELP
+    {
+        MENUITEM "~About...",           IDM_HELP_ABOUT
+    }
+}
+
+/* ── Context menu (right-click on file) ────────────────────────────────────── */
+MENU IDR_CONTEXT
+{
+    MENUITEM "~Open",               IDM_FILE_OPEN
+    MENUITEM "~Properties...",      IDM_SEL_PROPS
+    MENUITEM SEPARATOR
+    MENUITEM "~Delete",             IDM_FILE_DELETE
+    MENUITEM "~Rename",             IDM_FILE_RENAME
+}
+
+/* ── Keyboard accelerators ─────────────────────────────────────────────────── */
+ACCELTABLE IDR_ACCEL
+{
+    VK_F5,          IDM_VIEW_REFRESH,   VIRTUALKEY
+    VK_F2,          IDM_SEL_RENAME,     VIRTUALKEY
+    VK_DELETE,      IDM_SEL_DELETE,     VIRTUALKEY
+    VK_LEFT,        IDM_FOLDER_BACK,    VIRTUALKEY, ALT
+    VK_RIGHT,       IDM_FOLDER_FWD,     VIRTUALKEY, ALT
+    VK_UP,          IDM_FOLDER_UP,      VIRTUALKEY, ALT
+    VK_BACKSPACE,   IDM_FOLDER_UP,      VIRTUALKEY
+}
+
+/* ── Rename dialog ──────────────────────────────────────────────────────────── */
+DLGTEMPLATE IDD_RENAME
+{
+    DIALOG "Rename", IDD_RENAME, 60, 60, 220, 60,
+        FS_NOBYTEALIGN | FS_DLGBORDER | WS_CLIPSIBLINGS | WS_SAVEBITS,
+        FCF_TITLEBAR | FCF_SYSMENU | FCF_DLGBORDER | FCF_NOBYTEALIGN
+    {
+        LTEXT   "New name:",            -1,         8,  38, 60,  8
+        ENTRYFIELD "",   IDC_RENAME_ENTRY,          8,  26, 204, 12,
+                    ES_AUTOSCROLL | ES_MARGIN
+        DEFPUSHBUTTON "OK",     DID_OK,             8,  8,  48, 14
+        PUSHBUTTON    "Cancel", DID_CANCEL,         64, 8,  48, 14
+    }
+}
